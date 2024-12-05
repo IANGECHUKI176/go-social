@@ -1,0 +1,11 @@
+bin/
+
+.env
+.envrc
+
+.vscode/
+
+/tmp/
+*.tmp
+
+*.log
