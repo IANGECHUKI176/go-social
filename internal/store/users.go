@@ -139,14 +139,22 @@ func NewUser(username, email, rawPassword string) (*User, error) {
 
 func (s *UserStore) Activate(ctx context.Context, token string) error {
 	return withTx(s.db, ctx, func(tx *sql.Tx) error {
-		//find user that this token belngs to
+		// 1.find user that this token belngs to
 		user, err := s.getUserFromInvitation(ctx, tx, token, time.Now())
 		if err != nil {
 			return err
 		}
 
-		// update user to active
-		// delete user invitation
+		//2. update user to active
+		user.IsActive = true
+		if err := s.update(ctx, tx, user); err != nil {
+			return err
+		}
+		// 3. delete user invitation
+		if err := s.deleteUserInvitations(ctx, tx, user.ID); err != nil {
+			return err
+		}
+
 		return nil
 	})
 }
@@ -178,4 +186,25 @@ func (s *UserStore) getUserFromInvitation(ctx context.Context, tx *sql.Tx, token
 	}
 	return user, nil
 
+}
+func (s *UserStore) update(ctx context.Context, tx *sql.Tx, user *User) error {
+	query := `UPDATE users SET username = $1, email = $2, is_active = $3 WHERE id = $4`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+	_, err := tx.ExecContext(ctx, query, user.Username, user.Email, user.IsActive, user.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UserStore) deleteUserInvitations(ctx context.Context, tx *sql.Tx, userID int64) error {
+	query := `DELETE FROM user_invitations WHERE user_id = $1`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+	_, err := tx.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

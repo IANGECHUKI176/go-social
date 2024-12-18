@@ -14,18 +14,18 @@ type userKey string
 
 var userCtx userKey
 
-// @Summary		Fetches a user profile
-// @Description	Fetches a user profile by ID
-// @Tags			users
-// @Accept			json
-// @Produce		json
-// @Param			id	path		int	true	"User ID"
-// @Success		200	{object}	store.User
-// @Failure		400	{object}	error
-// @Failure		404	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
-// @Router			/users/{id} [get]
+//	@Summary		Fetches a user profile
+//	@Description	Fetches a user profile by ID
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int	true	"User ID"
+//	@Success		200	{object}	store.User
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	user := getUserFromContext(r)
@@ -41,18 +41,18 @@ type FollowUserPayload struct {
 	UserID int64 `json:"user_id"`
 }
 
-// @Summary		Follow a user
-// @Description	Follow a user by ID
-// @Tags			users
-// @Accept			json
-// @Produce		json
-// @Param			userID	path		int		true	"User ID"
-// @Success		204		{string}	string	"User followed"
-// @Failure		400		{object}	error	"USer payload missing or invalid"
-// @Failure		404		{object}	error	"User not found"
-// @Failure		500		{object}	error	"Server error"
-// @Security		ApiKeyAuth
-// @Router			/users/{userID}/follow [put]
+//	@Summary		Follow a user
+//	@Description	Follow a user by ID
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			userID	path		int		true	"User ID"
+//	@Success		204		{string}	string	"User followed"
+//	@Failure		400		{object}	error	"USer payload missing or invalid"
+//	@Failure		404		{object}	error	"User not found"
+//	@Failure		500		{object}	error	"Server error"
+//	@Security		ApiKeyAuth
+//	@Router			/users/{userID}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	followerUser := getUserFromContext(r)
 	//TODO: Revert back to auth userID from ctx
@@ -93,18 +93,18 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 
 // UnfollowUser godoc
 //
-// @Summary		Unfollow a user
-// @Description	Unfollow a user by ID
-// @Tags			users
-// @Accept			json
-// @Produce		json
-// @Param			userID	path		int		true	"User ID"
-// @Success		204		{string}	string	"User unfollowed"
-// @Failure		400		{object}	error	"USer payload missing or invalid"
-// @Failure		404		{object}	error	"User not found"
-// @Failure		500		{object}	error	"Server error"
-// @Security		ApiKeyAuth
-// @Router			/users/{userID}/unfollow [put]
+//	@Summary		Unfollow a user
+//	@Description	Unfollow a user by ID
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			userID	path		int		true	"User ID"
+//	@Success		204		{string}	string	"User unfollowed"
+//	@Failure		400		{object}	error	"USer payload missing or invalid"
+//	@Failure		404		{object}	error	"User not found"
+//	@Failure		500		{object}	error	"Server error"
+//	@Security		ApiKeyAuth
+//	@Router			/users/{userID}/unfollow [put]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 	unfollowedUser := getUserFromContext(r)
 	//TODO: Revert back to auth userID from ctx
@@ -125,6 +125,20 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 }
+
+// ActivateUser godoc
+//
+//	@Summary		Activate a user
+//	@Description	Activate a user by inivatationtoken
+//	@Tags			users
+//	@Produce		json
+//	@Param			token	path		string	true	"Invitation token"
+//	@Success		204		{string}	string	"User activated"
+//	@Failure		400		{object}	error	"USer payload missing or invalid"
+//	@Failure		404		{object}	error	"User not found"
+//	@Failure		500		{object}	error	"Server error"
+//	@Security		ApiKeyAuth
+//	@Router			/users/activate/{token} [put]
 func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	err := app.store.Users.Activate(r.Context(), token)

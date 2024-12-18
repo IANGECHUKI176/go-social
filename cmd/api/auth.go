@@ -15,6 +15,11 @@ type RegisterUserPayload struct {
 	Password string `json:"password" validate:"required,min=3,max=255"`
 }
 
+type UserWithToken struct {
+	*store.User
+	Token string `json:"token"`
+}
+
 // registerUserHandler godoc
 //
 //	@Summary		Register a user
@@ -23,7 +28,7 @@ type RegisterUserPayload struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		RegisterUserPayload	true	"User credentials"
-//	@Success		201		{object}	store.User
+//	@Success		201		{object}	UserWithToken
 //	@Failure		400		{object}	error
 //	@Failure		500		{object}	error
 //	@Security		ApiKeyAuth
@@ -72,9 +77,13 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	// if err != nil {
 	// 	app.internalServerError(w, r, err)
 	// 	return
-	// }
+	// } "token": "c6eeaab6-d460-456b-89f6-0539784097e1"
+	userWIthToken := UserWithToken{
+		User:  user,
+		Token: plainToken,
+	}
 
-	if err := app.jsonResponse(w, http.StatusCreated, user); err != nil {
+	if err := app.jsonResponse(w, http.StatusCreated, userWIthToken); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }
