@@ -1,0 +1,30 @@
+{{ define "subject" }}Finish your registration with GopherSocial{{ end }}
+
+{{ define "body" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Hi {{.Username}},</h1>
+    <p>
+        Thanks for signing up for GopherSocial! We're excited to have you on board.
+    </p>
+    <p>Before you can start using GopherSocial,you need to confirm your email address.Click the link below to confirm your email address</p>
+    <a href="{{.ActivationURL}}">{{.ActivationURL}}</a>
+    <p>If you want to activate your account manually copy and paste the code from the link above</p>
+    <p>
+        If you didn't sign up for GopherSocial, please ignore this email.
+    </p>
+    <p>
+        Thanks,
+        <br>
+        GopherSocial Team
+    </p>
+    
+</body>
+</html>
+{{end}}

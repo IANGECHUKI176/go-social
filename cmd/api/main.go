@@ -3,6 +3,7 @@ package main
 import (
 	"gopher_social/internal/db"
 	"gopher_social/internal/env"
+	"gopher_social/internal/mailer"
 	"gopher_social/internal/store"
 	"time"
 
@@ -33,8 +34,9 @@ const version = "0.0.2"
 func main() {
 
 	cfg := config{
-		addr:   env.GetString("ADDR", ":8000"),
-		apiURL: env.GetString("API_URL", "localhost:8081"),
+		addr:        env.GetString("ADDR", ":8000"),
+		apiURL:      env.GetString("API_URL", "localhost:8081"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
 		db: dbConfig{
 			addr: env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost:5432/gopher_social?sslmode=disable"),
 
@@ -44,7 +46,11 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
-			exp: time.Hour * 24 * 3,
+			exp:       time.Hour * 24 * 3,
+			fromEmail: env.GetString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apiKey: env.GetString("SENDGRID_API_KEY", ""),
+			},
 		},
 		version: version,
 	}
@@ -62,10 +68,13 @@ func main() {
 	logger.Info("✅ Connected to database")
 
 	store := store.NewPostgresStorage(db)
+
+	mailer := mailer.NewSendgridMailer(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
 	app := application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 	mux := app.mount()
 

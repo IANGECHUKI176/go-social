@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"gopher_social/internal/mailer"
 	"gopher_social/internal/store"
 	"net/http"
 
@@ -71,18 +73,33 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	//store user
-
-	// user, err := app.store.RegisterUser(payload.Username, payload.Email, payload.Password)
-	// if err != nil {
-	// 	app.internalServerError(w, r, err)
-	// 	return
-	// } "token": "c6eeaab6-d460-456b-89f6-0539784097e1"
 	userWIthToken := UserWithToken{
 		User:  user,
 		Token: plainToken,
 	}
+	activationURL := fmt.Sprintf("%s/confirm/%s", app.config.frontendURL, plainToken)
 
+	isProdEnv := app.config.env == "production"
+	vars := struct {
+		Username      string
+		ActivationURL string
+	}{
+		Username:      user.Username,
+		ActivationURL: activationURL,
+	}
+	// send mail
+	err = app.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
+	if err != nil {
+		app.logger.Errorw("error sending welcome email", "error", err.Error())
+
+		// rollback user creation if email fails(SAGA pattern)
+		if err := app.store.Users.Delete(ctx, user.ID); err != nil {
+			app.logger.Errorw("error deleting user", "error", err.Error())
+		}
+
+		app.internalServerError(w, r, err)
+		return
+	}
 	if err := app.jsonResponse(w, http.StatusCreated, userWIthToken); err != nil {
 		app.internalServerError(w, r, err)
 	}
