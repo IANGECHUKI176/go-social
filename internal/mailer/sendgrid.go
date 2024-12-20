@@ -28,7 +28,7 @@ func NewSendgridMailer(apiKey, fromEmail string) *SendGridMailer {
 	}
 }
 
-func (m *SendGridMailer) Send(templateFile, username, email string, data any, isSandbox bool) error {
+func (m *SendGridMailer) Send(templateFile, username, email string, data any, isSandbox bool) (int, error) {
 
 	log.Println("sandbox", isSandbox)
 	from := mail.NewEmail(FromName, m.fromEmail)
@@ -37,18 +37,18 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 	// template parsing and building
 	tmpl, err := template.ParseFS(FS, "templates/"+templateFile)
 	if err != nil {
-		return err
+		return -1, err
 	}
 	subject := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(subject, "subject", data)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	body := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(body, "body", data)
 	if err != nil {
-		return err
+		return -1, err
 	}
 	message := mail.NewSingleEmail(from, subject.String(), to, "", body.String())
 	message.SetMailSettings(&mail.MailSettings{
@@ -56,20 +56,18 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 			Enable: &isSandbox,
 		},
 	})
+	var retryErr error
 	for i := 0; i < maxRetries; i++ {
 
 		response, err := m.client.Send(message)
 		if err != nil {
-			log.Printf("Failed to send emai l to %s,attempt %d of %d", email, i+1, maxRetries)
-			log.Printf("Error: %v", err)
-
+			retryErr = err
 			//Exponential backoff
 			time.Sleep(time.Duration(i*1) * time.Second)
 			continue
 		}
-		log.Printf("Email sent to %s, status code: %d", email, response.StatusCode)
-		return nil
+		return response.StatusCode, nil
 	}
 
-	return fmt.Errorf("Failed to send email to %s after %d attempts", email, maxRetries)
+	return -1, fmt.Errorf("failed to send email after %d attempt, error: %v", maxRetries, retryErr)
 }
