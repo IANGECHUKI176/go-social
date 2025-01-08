@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gopher_social/internal/auth"
 	"gopher_social/internal/mailer"
 	"gopher_social/internal/store"
 	"net/http"
@@ -17,10 +18,11 @@ import (
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 type config struct {
 	addr        string
@@ -34,6 +36,12 @@ type config struct {
 }
 type authConfig struct {
 	basic basicConfig
+	token tokenConfig
+}
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 type basicConfig struct {
 	user string
@@ -114,6 +122,7 @@ func (app *application) mount() *chi.Mux {
 		//public routes
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.registerUserHandler)
+			r.Post("/token", app.createTokenHandler)
 		})
 
 	})

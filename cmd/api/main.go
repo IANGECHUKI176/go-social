@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gopher_social/internal/auth"
 	"gopher_social/internal/db"
 	"gopher_social/internal/env"
 	"gopher_social/internal/mailer"
@@ -36,7 +37,7 @@ func main() {
 	cfg := config{
 		addr:        env.GetString("ADDR", ":8000"),
 		apiURL:      env.GetString("API_URL", "localhost:8081"),
-		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:5173"),
 		db: dbConfig{
 			addr: env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost:5432/gopher_social?sslmode=disable"),
 
@@ -60,6 +61,11 @@ func main() {
 				user: env.GetString("BASIC_AUTH_USER", "admin"),
 				pass: env.GetString("BASIC_AUTH_PASS", "admin"),
 			},
+			token: tokenConfig{
+				secret: env.GetString("AUTH_TOKEN_SECRET", "secret"),
+				exp:    time.Hour * 24 * 3,
+				iss:    "gophersocial",
+			},
 		},
 		version: version,
 	}
@@ -81,14 +87,16 @@ func main() {
 	// Mailer
 	// mailer := mailer.NewSendgridMailer(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
 	mailtrap, err := mailer.NewMailTrapClient(cfg.mail.mailTrap.apiKey, cfg.mail.fromEmail)
+	JWTAuthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.iss, cfg.auth.token.iss)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	app := application{
-		config: cfg,
-		store:  store,
-		logger: logger,
-		mailer: mailtrap,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        mailtrap,
+		authenticator: JWTAuthenticator,
 	}
 	mux := app.mount()
 

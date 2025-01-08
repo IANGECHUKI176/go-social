@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+	"time"
 
 	gomail "gopkg.in/mail.v2"
 )
@@ -49,7 +50,7 @@ func (m mailTrapClient) Send(templateFile, username, email string, data any, isS
 	message.SetBody("text/html", body.String())
 
 	dialer := gomail.NewDialer("live.smtp.mailtrap.io", 587, "api", m.apiKey)
-
+	dialer.Timeout = 5 * time.Second
 	err = dialer.DialAndSend(message)
 	if err != nil {
 		return -1, err
