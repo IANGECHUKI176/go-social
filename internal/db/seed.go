@@ -111,16 +111,18 @@ func Seed(store store.Storage, db *sql.DB) {
 func generateUsers(num int) []*store.User {
 	users := make([]*store.User, num)
 	for i := 0; i < num; i++ {
-		user, err := store.NewUser("user"+fmt.Sprintf("%d", i), "user"+fmt.Sprintf("%d", i)+"@example.com", "password")
-		if err != nil {
-			log.Println("failed to seed users", err)
-		}
-		users[i] = user
-		// users[i] = &store.User{
-		// 	Username: usernames[i%len(usernames)] + fmt.Sprintf("%d", i),
-		// 	Email:    usernames[i%len(usernames)] + fmt.Sprintf("%d", i) + "@example.com",
-		// 	Password: "password",
+		// user, err := store.NewUser("user"+fmt.Sprintf("%d", i), "user"+fmt.Sprintf("%d", i)+"@example.com", "password")
+		// if err != nil {
+		// 	log.Println("failed to seed users", err)
 		// }
+		// users[i] = user
+		// role := getRoleByName("user")
+		users[i] = &store.User{
+			Username: usernames[i%len(usernames)] + fmt.Sprintf("%d", i),
+			Email:    usernames[i%len(usernames)] + fmt.Sprintf("%d", i) + "@example.com",
+
+			RoleID: 1,
+		}
 	}
 	return users
 }
