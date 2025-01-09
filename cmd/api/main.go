@@ -6,8 +6,10 @@ import (
 	"gopher_social/internal/env"
 	"gopher_social/internal/mailer"
 	"gopher_social/internal/store"
+	"gopher_social/internal/store/cache"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +38,7 @@ func main() {
 
 	cfg := config{
 		addr:        env.GetString("ADDR", ":8000"),
-		apiURL:      env.GetString("API_URL", "localhost:8081"),
+		apiURL:      env.GetString("API_URL", "localhost:8080"),
 		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:5173"),
 		db: dbConfig{
 			addr: env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost:5432/gopher_social?sslmode=disable"),
@@ -44,6 +46,12 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 25),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 25),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+		},
+		redisCfg: redisConfig{
+			addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
+			pw:      env.GetString("REDIS_PW", ""),
+			db:      env.GetInt("REDIS_DB", 0),
+			enabled: env.GetBool("REDIS_ENABLED", true),
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
@@ -82,8 +90,14 @@ func main() {
 
 	logger.Info("✅ Connected to database")
 
+	// cache
+	var rdb *redis.Client
+	if cfg.redisCfg.enabled {
+		rdb = cache.NewRedisClient(cfg.redisCfg.addr, cfg.redisCfg.pw, cfg.redisCfg.db)
+		logger.Info("✅ redis cache connection established")
+	}
 	store := store.NewPostgresStorage(db)
-
+	cacheStorage := cache.NewRedisStorage(rdb)
 	// Mailer
 	// mailer := mailer.NewSendgridMailer(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
 	mailtrap, err := mailer.NewMailTrapClient(cfg.mail.mailTrap.apiKey, cfg.mail.fromEmail)
@@ -94,6 +108,7 @@ func main() {
 	app := application{
 		config:        cfg,
 		store:         store,
+		cacheStorage:  cacheStorage,
 		logger:        logger,
 		mailer:        mailtrap,
 		authenticator: JWTAuthenticator,

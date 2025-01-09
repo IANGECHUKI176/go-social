@@ -15,7 +15,7 @@ type UpdatePostPayload struct {
 
 func updatePost(postID int, p UpdatePostPayload, wg *sync.WaitGroup) {
 	defer wg.Done()
-	url := fmt.Sprintf("http://localhost:8081/v1/posts/%d", postID)
+	url := fmt.Sprintf("http://localhost:8080/v1/posts/%d", postID)
 	b, _ := json.Marshal(p)
 	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(b))
 	if err != nil {
