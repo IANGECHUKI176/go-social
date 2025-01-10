@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gopher_social/internal/auth"
 	"gopher_social/internal/mailer"
+	"gopher_social/internal/ratelimiter"
 	"gopher_social/internal/store"
 	"gopher_social/internal/store/cache"
 	"net/http"
@@ -30,6 +31,7 @@ type application struct {
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	rateLimiter   ratelimiter.Limiter
 }
 type config struct {
 	addr        string
@@ -41,6 +43,7 @@ type config struct {
 	frontendURL string
 	auth        authConfig
 	redisCfg    redisConfig
+	rateLimiter ratelimiter.Config
 }
 
 type redisConfig struct {
@@ -96,6 +99,10 @@ func (app *application) mount() *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
+
+	if app.config.rateLimiter.Enabled {
+		r.Use(app.RateLimiterMiddleware)
+	}
 
 	r.Use(middleware.Timeout(60 * time.Second))
 

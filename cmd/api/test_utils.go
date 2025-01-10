@@ -2,6 +2,7 @@ package main
 
 import (
 	"gopher_social/internal/auth"
+	"gopher_social/internal/ratelimiter"
 	"gopher_social/internal/store"
 	"gopher_social/internal/store/cache"
 	"net/http"
@@ -14,17 +15,25 @@ import (
 
 func NewTestApplication(t *testing.T, cfg config) *application {
 	t.Helper()
-	logger := zap.Must(zap.NewProduction()).Sugar()
-	// logger := zap.NewNop().Sugar()
+	// Uncomment to enable logs
+	// logger := zap.Must(zap.NewProduction()).Sugar()
+	logger := zap.NewNop().Sugar()
 	mockStore := store.NewMockStore()
 	cacheStore := cache.NewMockStore()
 	testAuth := &auth.TestAuthenticator{}
+
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
 	return &application{
 		logger:        logger,
 		store:         mockStore,
 		cacheStorage:  cacheStore,
 		authenticator: testAuth,
 		config:        cfg,
+		rateLimiter:   rateLimiter,
 	}
 }
 func executeRequest(req *http.Request, mux *chi.Mux) *httptest.ResponseRecorder {

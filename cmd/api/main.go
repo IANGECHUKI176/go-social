@@ -5,6 +5,7 @@ import (
 	"gopher_social/internal/db"
 	"gopher_social/internal/env"
 	"gopher_social/internal/mailer"
+	"gopher_social/internal/ratelimiter"
 	"gopher_social/internal/store"
 	"gopher_social/internal/store/cache"
 	"time"
@@ -75,6 +76,11 @@ func main() {
 				iss:    "gophersocial",
 			},
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATE_LIMITER_REQUESTS_PER_TIME_FRAME", 100),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
+		},
 		version: version,
 	}
 	//Logger
@@ -82,7 +88,11 @@ func main() {
 	defer logger.Sync()
 
 	//Database
-	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
+	db, err := db.New(
+		cfg.db.addr,
+		cfg.db.maxOpenConns,
+		cfg.db.maxIdleConns,
+		cfg.db.maxIdleTime)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -95,13 +105,29 @@ func main() {
 	if cfg.redisCfg.enabled {
 		rdb = cache.NewRedisClient(cfg.redisCfg.addr, cfg.redisCfg.pw, cfg.redisCfg.db)
 		logger.Info("✅ redis cache connection established")
+
+		defer rdb.Close()
 	}
-	store := store.NewPostgresStorage(db)
-	cacheStorage := cache.NewRedisStorage(rdb)
+
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
+
 	// Mailer
 	// mailer := mailer.NewSendgridMailer(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
 	mailtrap, err := mailer.NewMailTrapClient(cfg.mail.mailTrap.apiKey, cfg.mail.fromEmail)
-	JWTAuthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.iss, cfg.auth.token.iss)
+
+	// Authenticator
+	JWTAuthenticator := auth.NewJWTAuthenticator(
+		cfg.auth.token.secret,
+		cfg.auth.token.iss,
+		cfg.auth.token.iss)
+
+	store := store.NewPostgresStorage(db)
+	cacheStorage := cache.NewRedisStorage(rdb)
+
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -112,6 +138,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailtrap,
 		authenticator: JWTAuthenticator,
+		rateLimiter:   rateLimiter,
 	}
 	mux := app.mount()
 
