@@ -20,7 +20,7 @@ func (m *MockUserStore) Create(ctx context.Context, tx *sql.Tx, user *User) erro
 }
 func (m *MockUserStore) GetByID(ctx context.Context, id int64) (*User, error) {
 	return &User{
-		ID: 42,
+		ID: id,
 	}, nil
 }
 func (m *MockUserStore) GetByEmail(ctx context.Context, email string) (*User, error) {

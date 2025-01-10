@@ -3,6 +3,8 @@ package cache
 import (
 	"context"
 	"gopher_social/internal/store"
+
+	"github.com/stretchr/testify/mock"
 )
 
 func NewMockStore() *Storage {
@@ -11,14 +13,18 @@ func NewMockStore() *Storage {
 	}
 }
 
-type MockUserStore struct{}
-
-func (m *MockUserStore) Get(context.Context, int64) (*store.User, error) {
-	return nil, nil
+type MockUserStore struct {
+	mock.Mock
 }
 
-func (m *MockUserStore) Set(context.Context, *store.User) error {
-	return nil
+func (m *MockUserStore) Get(ctx context.Context, userID int64) (*store.User, error) {
+	args := m.Called(userID)
+	return nil, args.Error(1)
+}
+
+func (m *MockUserStore) Set(ctx context.Context, user *store.User) error {
+	args := m.Called(user)
+	return args.Error(0)
 }
 
 func (m *MockUserStore) Delete(context.Context, int64) error {
