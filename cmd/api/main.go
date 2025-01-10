@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"gopher_social/internal/auth"
 	"gopher_social/internal/db"
 	"gopher_social/internal/env"
@@ -8,6 +9,7 @@ import (
 	"gopher_social/internal/ratelimiter"
 	"gopher_social/internal/store"
 	"gopher_social/internal/store/cache"
+	"runtime"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -140,6 +142,15 @@ func main() {
 		authenticator: JWTAuthenticator,
 		rateLimiter:   rateLimiter,
 	}
+
+	//metrics collected
+	expvar.NewString("version").Set(cfg.version)
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
 	mux := app.mount()
 
 	logger.Fatal(app.run(mux))

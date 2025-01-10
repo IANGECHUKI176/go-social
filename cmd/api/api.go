@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"gopher_social/internal/auth"
+	"gopher_social/internal/env"
 	"gopher_social/internal/mailer"
 	"gopher_social/internal/ratelimiter"
 	"gopher_social/internal/store"
@@ -88,7 +90,7 @@ type dbConfig struct {
 func (app *application) mount() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   []string{env.GetString("CORS_ALLOWED_ORIGIN", "http://localhost:5173")},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -108,6 +110,8 @@ func (app *application) mount() *chi.Mux {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
+		r.With(app.BasicAuthMiddleware()).Get("/debug/vars", expvar.Handler().ServeHTTP)
+
 		docsUrl := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL(docsUrl), //The url pointing to API definition
