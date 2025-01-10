@@ -179,7 +179,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	if payload.Content != nil {
 		post.Content = *payload.Content
 	}
-	if err := app.store.Posts.Update(r.Context(), post); err != nil {
+	if err := app.updatePost(r.Context(), post); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
